@@ -186,6 +186,26 @@ async def new_team_leader(request: Request):
     )
 
 
+@router.get("/admin/loss-reasons", response_class=HTMLResponse)
+async def admin_loss_reasons(request: Request):
+    """Render the admin loss reasons page"""
+    return templates.TemplateResponse(
+        "pages/admin/loss-reasons.html",
+        {"request": request}
+    )
+
+
+@router.get("/admin/loss-reasons/new", response_class=HTMLResponse)
+async def admin_new_loss_reason(request: Request):
+    """Render the admin new loss reason page"""
+    return templates.TemplateResponse(
+        "pages/admin/new-loss-reason.html",
+        {"request": request}
+    )
+
+# =============== PLANNER ROUTES =============== #
+
+
 @router.get("/planner", response_class=HTMLResponse)
 async def planner_dashboard(request: Request):
     """Render the planner dashboard page"""

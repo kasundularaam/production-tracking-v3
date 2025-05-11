@@ -1,0 +1,67 @@
+<!-- app/templates/pages/admin/loss-reasons.html -->
+
+{% extends "base.html" %} {% block title %}Loss Reasons - ETD Production
+Tracking System{% endblock %} {% block module_imports %} import
+'/static/js/components/admin/admin-header.js'; import
+'/static/js/components/admin/admin-loss-reason-list.js'; {% endblock %} {% block
+additional_head %}
+<style>
+  .admin-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;
+  }
+
+  .admin-content {
+    margin-top: 2rem;
+  }
+
+  .admin-header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .admin-page-title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 500;
+  }
+
+  .admin-add-button {
+    background-color: #f7eb00;
+    color: #131624;
+    border: none;
+    padding: 0.6rem 1.25rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+  }
+
+  .admin-add-button:hover {
+    background-color: #e5d900;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="admin-container">
+  <admin-header></admin-header>
+
+  <div class="admin-content">
+    <div class="admin-header-actions">
+      <h1 class="admin-page-title">Loss Reasons</h1>
+      <a href="/admin/loss-reasons/new" class="admin-add-button">
+        <i class="fas fa-plus"></i> Add New Loss Reason
+      </a>
+    </div>
+
+    <admin-loss-reason-list></admin-loss-reason-list>
+  </div>
+</div>
+{% endblock %}

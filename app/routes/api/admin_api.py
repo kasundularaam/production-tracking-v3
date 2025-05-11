@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Request
 from sqlalchemy import and_, distinct
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.sql import func
@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime
 from app.database import get_db
-from app.models import Plant, Zone, Loop, Line, Cell, User, Planner, TeamLeader, Member, UserRole
+from app.models import Loss, LossReason, Plant, Zone, Loop, Line, Cell, User, Planner, TeamLeader, Member, UserRole
 
 router = APIRouter(prefix="/api/admin")
 
@@ -158,6 +158,28 @@ class MemberCreate(BaseModel):
     sap_id: str
     name: str
     cell_id: int
+
+
+class LossReasonBase(BaseModel):
+    id: int
+    title: str
+    department: str
+
+
+class LossReasonCreate(LossReasonBase):
+    pass
+
+
+class LossReasonResponse(LossReasonBase):
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class LossReasonsResponse(BaseModel):
+    items: List[LossReasonResponse]
+    total: int
 
 
 class DashboardStats(BaseModel):
@@ -1026,4 +1048,233 @@ async def create_team_leader(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create team leader: {str(e)}"
+        )
+
+
+@router.get("/loss-reasons", response_model=LossReasonsResponse)
+async def list_loss_reasons(
+    request: Request,
+    page: int = Query(1, gt=0),
+    limit: int = Query(20, gt=0, le=100),
+    db: Session = Depends(get_db)
+):
+    """List all loss reasons with pagination"""
+    user = request.state.user
+
+    # Check if user is admin
+    if user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admins can access this resource"
+        )
+
+    # Query loss reasons
+    query = db.query(LossReason).filter(
+        LossReason.is_deleted == False
+    ).order_by(LossReason.id)
+
+    # Count total items
+    total = query.count()
+
+    # Apply pagination
+    items = query.offset((page - 1) * limit).limit(limit).all()
+
+    return {
+        "items": items,
+        "total": total
+    }
+
+
+@router.get("/loss-reasons/{loss_reason_id}", response_model=LossReasonResponse)
+async def get_loss_reason(
+    loss_reason_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Get a specific loss reason by ID"""
+    user = request.state.user
+
+    # Check if user is admin
+    if user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admins can access this resource"
+        )
+
+    # Get loss reason
+    loss_reason = db.query(LossReason).filter(
+        LossReason.id == loss_reason_id,
+        LossReason.is_deleted == False
+    ).first()
+
+    if not loss_reason:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Loss reason not found"
+        )
+
+    return loss_reason
+
+
+@router.post("/loss-reasons", response_model=LossReasonResponse, status_code=status.HTTP_201_CREATED)
+async def create_loss_reason(
+    loss_reason_data: LossReasonCreate,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Create a new loss reason"""
+    user = request.state.user
+
+    # Check if user is admin
+    if user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admins can create loss reasons"
+        )
+
+    # Check if ID already exists
+    existing_reason = db.query(LossReason).filter(
+        LossReason.id == loss_reason_data.id,
+        LossReason.is_deleted == False
+    ).first()
+
+    if existing_reason:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Loss reason with ID {loss_reason_data.id} already exists"
+        )
+
+    # Create new loss reason
+    new_reason = LossReason(**loss_reason_data.dict())
+
+    try:
+        db.add(new_reason)
+        db.commit()
+        db.refresh(new_reason)
+        return new_reason
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create loss reason: {str(e)}"
+        )
+
+
+@router.put("/loss-reasons/{loss_reason_id}", response_model=LossReasonResponse)
+async def update_loss_reason(
+    loss_reason_id: int,
+    loss_reason_data: LossReasonBase,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Update an existing loss reason"""
+    user = request.state.user
+
+    # Check if user is admin
+    if user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admins can update loss reasons"
+        )
+
+    # Get existing loss reason
+    loss_reason = db.query(LossReason).filter(
+        LossReason.id == loss_reason_id,
+        LossReason.is_deleted == False
+    ).first()
+
+    if not loss_reason:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Loss reason not found"
+        )
+
+    # Check if ID in data matches URL ID
+    if loss_reason_data.id != loss_reason_id:
+        # Check if new ID already exists
+        existing_reason = db.query(LossReason).filter(
+            LossReason.id == loss_reason_data.id,
+            LossReason.is_deleted == False
+        ).first()
+
+        if existing_reason:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Loss reason with ID {loss_reason_data.id} already exists"
+            )
+
+    # Update loss reason
+    for key, value in loss_reason_data.dict().items():
+        setattr(loss_reason, key, value)
+
+    loss_reason.updated_at = func.now()
+
+    try:
+        db.add(loss_reason)
+        db.commit()
+        db.refresh(loss_reason)
+        return loss_reason
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update loss reason: {str(e)}"
+        )
+
+
+# Update in app/routes/api/admin_api.py
+
+# Update in app/routes/api/admin_api.py
+
+# Changed from 204 to 200
+@router.delete("/loss-reasons/{loss_reason_id}", status_code=status.HTTP_200_OK)
+async def delete_loss_reason(
+    loss_reason_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Delete a loss reason (permanent delete)"""
+    user = request.state.user
+
+    # Check if user is admin
+    if user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admins can delete loss reasons"
+        )
+
+    # Get loss reason
+    loss_reason = db.query(LossReason).filter(
+        LossReason.id == loss_reason_id
+    ).first()
+
+    if not loss_reason:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Loss reason not found"
+        )
+
+    # Check if there are any losses associated with this reason
+    # If there are, we can't delete it
+    has_losses = db.query(Loss).filter(
+        Loss.loss_reason_id == loss_reason_id
+    ).first() is not None
+
+    if has_losses:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete loss reason that is being used by loss records"
+        )
+
+    # Permanent delete
+    try:
+        db.delete(loss_reason)
+        db.commit()
+        # Return a response instead of None
+        return {"success": True, "message": "Loss reason deleted successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete loss reason: {str(e)}"
         )
