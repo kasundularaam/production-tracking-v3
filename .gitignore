@@ -1,0 +1,114 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+.pytest_cache/
+
+# SQLite database files
+*.db
+*.sqlite3
+*.sqlite
+
+# Environment variables
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.env.local
+.env.development
+.env.test
+.env.production
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# IDE - PyCharm
+.idea/
+*.iml
+*.iws
+*.ipr
+*.iws
+.idea_modules/
+out/
+
+# IDE - Jupyter Notebook
+.ipynb_checkpoints
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# JavaScript/Node.js (if applicable)
+node_modules/
+jspm_packages/
+.npm
+.yarn-integrity
+.cache
+.parcel-cache
+
+# Distribution files
+/dist
+/tmp
+/out-tsc
+
+# Local development server
+.uvicorn
+.reload
+
+# Production related
+.vercel
+.netlify
+
+# Backup files
+*.bak
+*.swp
+*~
+*.tmp
+
+# Application specific
+app.db

@@ -1,0 +1,47 @@
+<!-- app/templates/pages/planner/dashboard.html -->
+
+{% extends "base.html" %} {% block title %}Planner Dashboard - ETD Production
+Tracking System{% endblock %} {% block module_imports %} import
+'/static/js/components/planner/planner-header.js'; import
+'/static/js/components/planner/planner-new-shift-form.js'; import
+'/static/js/components/planner/planner-shift-list.js'; {% endblock %} {% block
+additional_head %}
+<style>
+  .planner-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;
+  }
+
+  .planner-content {
+    margin-top: 2rem;
+  }
+
+  .planner-section {
+    margin-bottom: 2rem;
+  }
+
+  .planner-section-title {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+    font-weight: 500;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="planner-container">
+  <planner-header></planner-header>
+
+  <div class="planner-content">
+    <div class="planner-section">
+      <h2 class="planner-section-title">Create New Shift</h2>
+      <planner-new-shift-form></planner-new-shift-form>
+    </div>
+
+    <div class="planner-section">
+      <h2 class="planner-section-title">Recent Shifts</h2>
+      <planner-shift-list></planner-shift-list>
+    </div>
+  </div>
+</div>
+{% endblock %}

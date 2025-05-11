@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Login - ETD Production Tracking System{% endblock %}
+
+{% block module_imports %}
+import '/static/js/components/auth/login-form.js';
+{% endblock %}
+
+{% block additional_head %}
+<style>
+    .login-page {
+        min-height: 100vh;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-image: url('/static/images/auth/background.jpg');
+        background-size: cover;
+        background-position: center;
+        position: relative;
+    }
+
+    .login-page::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(19, 22, 36, 0.75);
+        backdrop-filter: blur(5px);
+        z-index: 1;
+    }
+
+    .login-container {
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        max-width: 1200px;
+        width: 100%;
+        padding: 0 20px;
+    }
+
+    .michelin-logo {
+        margin-bottom: 2rem;
+        max-width: 200px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-page">
+    <div class="login-container">
+        <img src="/static/images/michelin-logo.png" alt="Michelin Logo" class="michelin-logo">
+        <login-form></login-form>
+    </div>
+</div>
+{% endblock %}

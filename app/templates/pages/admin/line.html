@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Line Details - ETD Production Tracking System{% endblock %}
+
+{% block module_imports %}
+import '/static/js/components/admin/admin-header.js';
+import '/static/js/components/admin/admin-line-header.js';
+import '/static/js/components/admin/admin-line-cells.js';
+import '/static/js/components/admin/admin-line-team-leaders.js';
+{% endblock %}
+
+{% block additional_head %}
+<style>
+    .admin-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 1rem;
+    }
+
+    .admin-content {
+        margin-top: 2rem;
+    }
+
+    .admin-back-link {
+        display: inline-flex;
+        align-items: center;
+        color: #f7eb00;
+        text-decoration: none;
+        margin-bottom: 1.5rem;
+        font-size: 0.875rem;
+        gap: 0.5rem;
+        transition: color 0.2s;
+    }
+
+    .admin-back-link:hover {
+        color: #ffffff;
+    }
+
+    .admin-sections {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+
+    @media (min-width: 992px) {
+        .admin-sections {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+</style>
+<script>
+    // This script will be used to set the line ID for the components
+    window.lineId = {{ line_id }};
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <admin-header></admin-header>
+
+    <div class="admin-content">
+        <a href="/admin" class="admin-back-link">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+
+        <admin-line-header></admin-line-header>
+
+        <div class="admin-sections">
+            <admin-line-cells></admin-line-cells>
+            <admin-line-team-leaders></admin-line-team-leaders>
+        </div>
+    </div>
+</div>
+{% endblock %}

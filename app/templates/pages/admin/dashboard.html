@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - ETD Production Tracking System{% endblock %}
+
+{% block module_imports %}
+import '/static/js/components/admin/admin-header.js';
+import '/static/js/components/admin/admin-stats-cards.js';
+import '/static/js/components/admin/admin-plants-list.js';
+{% endblock %}
+
+{% block additional_head %}
+<style>
+    .admin-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 1rem;
+    }
+
+    .admin-content {
+        margin-top: 2rem;
+    }
+
+    .admin-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    @media (min-width: 992px) {
+        .admin-grid {
+            grid-template-columns: 300px 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <admin-header></admin-header>
+
+    <div class="admin-content">
+        <admin-stats-cards></admin-stats-cards>
+
+        <div class="admin-grid">
+            <admin-plants-list></admin-plants-list>
+
+            <!-- Additional content can be placed here in the future -->
+        </div>
+    </div>
+</div>
+{% endblock %}
