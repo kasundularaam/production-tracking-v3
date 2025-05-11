@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime
 from app.database import get_db
-from app.models import Loss, LossReason, Plant, Zone, Loop, Line, Cell, User, Planner, TeamLeader, Member, UserRole
+from app.models import Attendance, AttendanceType, Loss, LossReason, Plant, Zone, Loop, Line, Cell, User, Planner, TeamLeader, Member, UserRole
 
 router = APIRouter(prefix="/api/admin")
 
@@ -179,6 +179,32 @@ class LossReasonResponse(LossReasonBase):
 
 class LossReasonsResponse(BaseModel):
     items: List[LossReasonResponse]
+    total: int
+
+
+class AttendanceTypeBase(BaseModel):
+    title: str
+    color: str
+
+
+class AttendanceTypeCreate(AttendanceTypeBase):
+    pass
+
+
+class AttendanceTypeUpdate(AttendanceTypeBase):
+    pass
+
+
+class AttendanceTypeResponse(AttendanceTypeBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AttendanceTypesResponse(BaseModel):
+    items: List[AttendanceTypeResponse]
     total: int
 
 
@@ -1277,4 +1303,202 @@ async def delete_loss_reason(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete loss reason: {str(e)}"
+        )
+
+
+@router.get("/attendance-types", response_model=AttendanceTypesResponse)
+async def list_attendance_types(
+    request: Request,
+    page: int = Query(1, gt=0),
+    limit: int = Query(20, gt=0, le=100),
+    db: Session = Depends(get_db)
+):
+    """List all attendance types with pagination"""
+    user = request.state.user
+
+    # Check if user is admin
+    if user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admins can access this resource"
+        )
+
+    # Query attendance types
+    query = db.query(AttendanceType).filter(
+        AttendanceType.is_deleted == False
+    ).order_by(AttendanceType.id)
+
+    # Count total items
+    total = query.count()
+
+    # Apply pagination
+    items = query.offset((page - 1) * limit).limit(limit).all()
+
+    return {
+        "items": items,
+        "total": total
+    }
+
+
+@router.get("/attendance-types/{attendance_type_id}", response_model=AttendanceTypeResponse)
+async def get_attendance_type(
+    attendance_type_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Get a specific attendance type by ID"""
+    user = request.state.user
+
+    # Check if user is admin
+    if user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admins can access this resource"
+        )
+
+    # Get attendance type
+    attendance_type = db.query(AttendanceType).filter(
+        AttendanceType.id == attendance_type_id,
+        AttendanceType.is_deleted == False
+    ).first()
+
+    if not attendance_type:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Attendance type not found"
+        )
+
+    return attendance_type
+
+
+@router.post("/attendance-types", response_model=AttendanceTypeResponse, status_code=status.HTTP_201_CREATED)
+async def create_attendance_type(
+    attendance_type_data: AttendanceTypeCreate,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Create a new attendance type"""
+    user = request.state.user
+
+    # Check if user is admin
+    if user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admins can create attendance types"
+        )
+
+    # Create new attendance type
+    new_type = AttendanceType(**attendance_type_data.dict())
+
+    try:
+        db.add(new_type)
+        db.commit()
+        db.refresh(new_type)
+        return new_type
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create attendance type: {str(e)}"
+        )
+
+
+@router.put("/attendance-types/{attendance_type_id}", response_model=AttendanceTypeResponse)
+async def update_attendance_type(
+    attendance_type_id: int,
+    attendance_type_data: AttendanceTypeUpdate,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Update an existing attendance type"""
+    user = request.state.user
+
+    # Check if user is admin
+    if user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admins can update attendance types"
+        )
+
+    # Get existing attendance type
+    attendance_type = db.query(AttendanceType).filter(
+        AttendanceType.id == attendance_type_id,
+        AttendanceType.is_deleted == False
+    ).first()
+
+    if not attendance_type:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Attendance type not found"
+        )
+
+    # Update attendance type
+    for key, value in attendance_type_data.dict().items():
+        setattr(attendance_type, key, value)
+
+    attendance_type.updated_at = func.now()
+
+    try:
+        db.add(attendance_type)
+        db.commit()
+        db.refresh(attendance_type)
+        return attendance_type
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update attendance type: {str(e)}"
+        )
+
+
+@router.delete("/attendance-types/{attendance_type_id}", status_code=status.HTTP_200_OK)
+async def delete_attendance_type(
+    attendance_type_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Delete an attendance type (permanent delete)"""
+    user = request.state.user
+
+    # Check if user is admin
+    if user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admins can delete attendance types"
+        )
+
+    # Get attendance type
+    attendance_type = db.query(AttendanceType).filter(
+        AttendanceType.id == attendance_type_id,
+        AttendanceType.is_deleted == False
+    ).first()
+
+    if not attendance_type:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Attendance type not found"
+        )
+
+    # Check if there are any attendances using this type
+    has_attendances = db.query(Attendance).filter(
+        Attendance.attendance_type_id == attendance_type_id
+    ).first() is not None
+
+    if has_attendances:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete attendance type that is being used by attendance records"
+        )
+
+    # Permanent delete
+    try:
+        db.delete(attendance_type)
+        db.commit()
+        # Return a successful response
+        return {"success": True, "message": "Attendance type deleted successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete attendance type: {str(e)}"
         )

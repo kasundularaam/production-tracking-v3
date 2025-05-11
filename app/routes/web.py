@@ -203,6 +203,26 @@ async def admin_new_loss_reason(request: Request):
         {"request": request}
     )
 
+
+@router.get("/admin/attendance-types", response_class=HTMLResponse)
+async def admin_attendance_types(request: Request):
+    """Render the admin attendance types page"""
+    return templates.TemplateResponse(
+        "pages/admin/attendance-types.html",
+        {"request": request}
+    )
+
+# Add to app/routes/web.py
+
+
+@router.get("/admin/attendance-types/new", response_class=HTMLResponse)
+async def admin_new_attendance_type(request: Request):
+    """Render the admin new attendance type page"""
+    return templates.TemplateResponse(
+        "pages/admin/new-attendance-type.html",
+        {"request": request}
+    )
+
 # =============== PLANNER ROUTES =============== #
 
 
