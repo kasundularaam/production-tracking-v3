@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, date
 from app.database import get_db
-from app.models import User, TeamLeader, Shift, Production, Plant, Line, Hour
+from app.models import Loss, LossReason, User, TeamLeader, Shift, Production, Plant, Line, Hour
 
 router = APIRouter(prefix="/api/team-leader")
 
@@ -38,6 +38,30 @@ class TeamLeaderResponse(BaseModel):
     sap_id: str
     name: str
     line: dict
+
+    class Config:
+        from_attributes = True
+
+
+class LossCreate(BaseModel):
+    amount: int
+    loss_reason_id: int
+    production_id: int
+
+
+class LossReasonResponse(BaseModel):
+    id: int
+    title: str
+    department: str
+
+    class Config:
+        from_attributes = True
+
+
+class LossResponse(BaseModel):
+    id: int
+    amount: int
+    loss_reason: LossReasonResponse
 
     class Config:
         from_attributes = True
@@ -342,3 +366,167 @@ async def save_production_data(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to save production data: {str(e)}"
         )
+
+
+@router.get("/loss-reasons", response_model=List[LossReasonResponse])
+async def get_loss_reasons(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Get all loss reasons"""
+    loss_reasons = db.query(LossReason).filter(
+        LossReason.is_deleted == False
+    ).all()
+
+    return loss_reasons
+
+
+@router.get("/production/{production_id}/losses", response_model=List[LossResponse])
+async def get_production_losses(
+    production_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Get losses for a specific production"""
+    user = request.state.user
+
+    # Verify the production belongs to this team leader
+    team_leader = db.query(TeamLeader).filter(
+        TeamLeader.user_id == user.sap_id,
+        TeamLeader.is_deleted == False
+    ).first()
+
+    if not team_leader:
+        raise HTTPException(status_code=404, detail="Team leader not found")
+
+    production = db.query(Production).filter(
+        Production.id == production_id,
+        Production.team_leader_id == team_leader.user_id,
+        Production.is_deleted == False
+    ).first()
+
+    if not production:
+        raise HTTPException(status_code=404, detail="Production not found")
+
+    # Get losses for this production
+    losses = db.query(Loss).filter(
+        Loss.production_id == production_id,
+        Loss.is_deleted == False
+    ).all()
+
+    return losses
+
+
+@router.post("/losses", status_code=status.HTTP_201_CREATED, response_model=LossResponse)
+async def create_loss(
+    loss_data: LossCreate,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Create a new loss entry"""
+    user = request.state.user
+
+    # Verify the production belongs to this team leader
+    team_leader = db.query(TeamLeader).filter(
+        TeamLeader.user_id == user.sap_id,
+        TeamLeader.is_deleted == False
+    ).first()
+
+    if not team_leader:
+        raise HTTPException(status_code=404, detail="Team leader not found")
+
+    production = db.query(Production).filter(
+        Production.id == loss_data.production_id,
+        Production.team_leader_id == team_leader.user_id,
+        Production.is_deleted == False
+    ).first()
+
+    if not production:
+        raise HTTPException(status_code=404, detail="Production not found")
+
+    # Check if loss reason exists
+    loss_reason = db.query(LossReason).filter(
+        LossReason.id == loss_data.loss_reason_id,
+        LossReason.is_deleted == False
+    ).first()
+
+    if not loss_reason:
+        raise HTTPException(status_code=404, detail="Loss reason not found")
+
+    # Calculate total loss
+    total_loss = production.plan - production.achievement
+
+    # Get existing losses for this production
+    existing_losses = db.query(Loss).filter(
+        Loss.production_id == production.id,
+        Loss.is_deleted == False
+    ).all()
+
+    existing_loss_total = sum(loss.amount for loss in existing_losses)
+
+    # Check if adding this loss would exceed the total loss
+    if existing_loss_total + loss_data.amount > total_loss:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Total loss amount cannot exceed {total_loss}. Current total: {existing_loss_total}, Attempted to add: {loss_data.amount}"
+        )
+
+    # Create new loss
+    new_loss = Loss(
+        amount=loss_data.amount,
+        loss_reason_id=loss_data.loss_reason_id,
+        production_id=loss_data.production_id
+    )
+
+    db.add(new_loss)
+    db.commit()
+    db.refresh(new_loss)
+
+    return new_loss
+
+
+@router.delete("/losses/{loss_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_loss(
+    loss_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Delete a loss entry"""
+    user = request.state.user
+
+    # Get the team leader
+    team_leader = db.query(TeamLeader).filter(
+        TeamLeader.user_id == user.sap_id,
+        TeamLeader.is_deleted == False
+    ).first()
+
+    if not team_leader:
+        raise HTTPException(status_code=404, detail="Team leader not found")
+
+    # Get the loss
+    loss = db.query(Loss).filter(
+        Loss.id == loss_id,
+        Loss.is_deleted == False
+    ).first()
+
+    if not loss:
+        raise HTTPException(status_code=404, detail="Loss not found")
+
+    # Check if the loss belongs to a production of this team leader
+    production = db.query(Production).filter(
+        Production.id == loss.production_id,
+        Production.team_leader_id == team_leader.user_id,
+        Production.is_deleted == False
+    ).first()
+
+    if not production:
+        raise HTTPException(
+            status_code=403, detail="Not authorized to delete this loss")
+
+    # Mark as deleted
+    loss.is_deleted = True
+    loss.deleted_at = datetime.now()
+
+    db.commit()
+
+    return None

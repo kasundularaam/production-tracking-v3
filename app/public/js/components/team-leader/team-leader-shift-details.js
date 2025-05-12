@@ -2,6 +2,7 @@
 
 import { LitElement, html } from "https://esm.run/lit";
 import { fetchJson, postJson } from "../../utils/api_utils.js";
+import "./team-leader-loss-modal.js";
 
 class TeamLeaderShiftDetails extends LitElement {
   static get properties() {
@@ -127,26 +128,60 @@ class TeamLeaderShiftDetails extends LitElement {
 
     try {
       // Submit the data
-      await postJson("/api/team-leader/production", productionData);
+      const response = await postJson(
+        "/api/team-leader/production",
+        productionData
+      );
 
-      // Show success feedback
-      const successToast = document.createElement("div");
-      successToast.className = "team-leader-success-toast";
-      successToast.innerHTML =
-        '<i class="fas fa-check-circle"></i> Production data saved successfully!';
-      document.body.appendChild(successToast);
+      // Calculate if there's a loss
+      const plan = productionData.plan;
+      const achievement = productionData.achievement;
+      const totalLoss = plan - achievement;
 
-      // Auto-remove toast after 3 seconds
-      setTimeout(() => {
-        successToast.classList.add("hide");
-        setTimeout(() => document.body.removeChild(successToast), 300);
-      }, 3000);
+      // Notify other components that production was saved
+      window.dispatchEvent(
+        new CustomEvent("production-saved", {
+          detail: {
+            productionId: response.id,
+            totalLoss: totalLoss,
+          },
+        })
+      );
+
+      // If there's a loss, open the loss modal
+      if (totalLoss > 0) {
+        // Open loss modal
+        const lossModal = this.shadowRoot
+          ? this.shadowRoot.getElementById("loss-modal")
+          : document.getElementById("loss-modal");
+
+        if (lossModal) {
+          lossModal.open(response.id, plan, achievement);
+        }
+      } else {
+        // Show success toast
+        this.showSuccessToast();
+      }
     } catch (error) {
       console.error("Error in production submission", error);
       this.error = error.message || "Failed to submit production data";
     } finally {
       this.submitting = false;
     }
+  }
+
+  showSuccessToast() {
+    const successToast = document.createElement("div");
+    successToast.className = "team-leader-success-toast";
+    successToast.innerHTML =
+      '<i class="fas fa-check-circle"></i> Production data saved successfully!';
+    document.body.appendChild(successToast);
+
+    // Auto-remove toast after 3 seconds
+    setTimeout(() => {
+      successToast.classList.add("hide");
+      setTimeout(() => document.body.removeChild(successToast), 300);
+    }, 3000);
   }
 
   formatDate(dateString) {
@@ -248,6 +283,12 @@ class TeamLeaderShiftDetails extends LitElement {
           </div>
         </div>
       </div>
+
+      <team-leader-loss-modal
+        id="loss-modal"
+        @losses-added=${() =>
+          window.dispatchEvent(new CustomEvent("losses-added"))}
+      ></team-leader-loss-modal>
 
       <style>
         .team-leader-shift-details {

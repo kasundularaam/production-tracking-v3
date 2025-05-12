@@ -5,8 +5,10 @@ System{% endblock %} {% block module_imports %} import
 '/static/js/components/team-leader/team-leader-header.js'; import
 '/static/js/components/team-leader/team-leader-nav.js'; import
 '/static/js/components/team-leader/team-leader-shift-details.js'; import
-'/static/js/components/team-leader/team-leader-production-cards.js'; {% endblock
-%} {% block additional_head %}
+'/static/js/components/team-leader/team-leader-production-cards.js'; import
+'/static/js/components/team-leader/team-leader-loss-list.js'; import
+'/static/js/components/team-leader/team-leader-loss-modal.js'; {% endblock %} {%
+block additional_head %}
 <style>
   body {
     background-color: #131624;
@@ -52,6 +54,7 @@ System{% endblock %} {% block module_imports %} import
     <div class="team-leader-content">
       <team-leader-shift-details></team-leader-shift-details>
       <team-leader-production-cards></team-leader-production-cards>
+      <team-leader-loss-list></team-leader-loss-list>
     </div>
   </div>
 </div>
