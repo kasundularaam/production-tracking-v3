@@ -15,6 +15,7 @@ from app.middleware.auth_middleware import auth_middleware
 from app.routes.api.auth_api import router as auth_api_router
 from app.routes.api.admin_api import router as admin_api_router
 from app.routes.api.planner_api import router as planner_api_router
+from app.routes.api.team_leader_api import router as team_leader_api_router
 
 # Define lifespan context manager
 
@@ -56,6 +57,7 @@ app.include_router(web_router)
 app.include_router(auth_api_router)
 app.include_router(admin_api_router)
 app.include_router(planner_api_router)
+app.include_router(team_leader_api_router)
 
 if __name__ == "__main__":
     import uvicorn

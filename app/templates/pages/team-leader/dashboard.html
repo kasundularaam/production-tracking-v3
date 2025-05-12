@@ -1,0 +1,76 @@
+<!-- app/templates/pages/team-leader/dashboard.html -->
+
+{% extends "base.html" %} {% block title %}Dashboard - ETD Production Tracking
+System{% endblock %} {% block module_imports %} import
+'/static/js/components/team-leader/team-leader-header.js'; import
+'/static/js/components/team-leader/team-leader-nav.js'; import
+'/static/js/components/team-leader/team-leader-shift-details.js'; import
+'/static/js/components/team-leader/team-leader-production-cards.js'; {% endblock
+%} {% block additional_head %}
+<style>
+  body {
+    background-color: #131624;
+    color: #ffffff;
+    margin: 0;
+    font-family: "Roboto", sans-serif;
+  }
+
+  .team-leader-dashboard {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .team-leader-main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .team-leader-sidebar {
+    width: 300px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    overflow-y: auto;
+  }
+
+  .team-leader-content {
+    flex: 1;
+    padding: 1.5rem;
+    overflow-y: auto;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="team-leader-dashboard">
+  <team-leader-header></team-leader-header>
+
+  <div class="team-leader-main">
+    <div class="team-leader-sidebar">
+      <team-leader-nav></team-leader-nav>
+    </div>
+
+    <div class="team-leader-content">
+      <team-leader-shift-details></team-leader-shift-details>
+      <team-leader-production-cards></team-leader-production-cards>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Initialize URL parameters if needed
+  window.addEventListener("DOMContentLoaded", () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const shiftId = urlParams.get("shift");
+    const hour = urlParams.get("hour");
+
+    // Dispatch custom event so components can react to initial parameters
+    if (shiftId || hour) {
+      window.dispatchEvent(
+        new CustomEvent("url-params-initialized", {
+          detail: { shiftId, hour },
+        })
+      );
+    }
+  });
+</script>
+{% endblock %}

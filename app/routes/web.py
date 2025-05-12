@@ -44,17 +44,6 @@ async def new_plant(request: Request):
     )
 
 
-@router.get("/team-leader", response_class=HTMLResponse)
-async def team_leader_dashboard(request: Request):
-    """
-    Team Leader dashboard page
-    """
-    return templates.TemplateResponse(
-        "team_leader/dashboard.html",
-        {"request": request}
-    )
-
-
 @router.get("/login", response_class=HTMLResponse)
 async def login(request: Request):
     """Render the login page"""
@@ -256,4 +245,16 @@ async def planner_schedule(
     return templates.TemplateResponse(
         "pages/planner/schedule.html",
         {"request": request, "line_id": line, "shift_id": shift}
+    )
+
+
+# =============== TEAM LEADER ROUTES =============== #
+
+
+@router.get("/team-leader", response_class=HTMLResponse)
+async def team_leader_dashboard(request: Request):
+    """Render the team leader dashboard page"""
+    return templates.TemplateResponse(
+        "pages/team-leader/dashboard.html",
+        {"request": request}
     )
